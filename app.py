@@ -48,6 +48,34 @@ class Config:
     )
 
 CFG = Config()
+from pptx import Presentation
+from io import BytesIO
+
+class PptxGenerator:
+    @staticmethod
+    def generate(contenido, titulo="Presentación de Julieta"):
+        prs = Presentation()
+        
+        # Diapositiva de Título
+        slide_layout = prs.slide_layouts[0] 
+        slide = prs.slides.add_slide(slide_layout)
+        slide.shapes.title.text = titulo
+        if len(slide.placeholders) > 1:
+            slide.placeholders[1].text = "Generado por Julieta v2 — Asistente Docente"
+
+        # Separar contenido por líneas para crear diapositivas
+        lineas = contenido.split('\n')
+        for linea in lineas:
+            if linea.strip():
+                bullet_layout = prs.slide_layouts[1]
+                slide = prs.slides.add_slide(bullet_layout)
+                slide.shapes.title.text = "Contenido"
+                slide.placeholders[1].text = linea
+
+        # Guardar en memoria para descargar
+        ppt_store = BytesIO()
+        prs.save(ppt_store)
+        return ppt_store.getvalue()
 
 
 # ============================================================
