@@ -38,7 +38,7 @@ class Config:
     APP_TITLE:    str = "Julieta — Asistente Docente"
     APP_ICON:     str = "👩‍🏫"
     MEMORIA_PATH: str = "maletin_docente.json"
-    MODEL_NAME:   str = "llama3-70b-8192"
+    MODEL_NAME:   str = "llama-3.3-70b-versatile"
     MAX_TOKENS:   int = 4096
     AVATAR_USER:  str = "👤"
     AVATAR_AI:    str = "👩‍🏫"
