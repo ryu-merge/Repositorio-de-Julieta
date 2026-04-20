@@ -12,6 +12,8 @@ import os
 import subprocess
 import tempfile
 import time
+from pptx import Presentation
+from io import BytesIO
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, Iterator, List, Optional
@@ -48,31 +50,31 @@ class Config:
     )
 
 CFG = Config()
-from pptx import Presentation
-from io import BytesIO
 
 class PptxGenerator:
     @staticmethod
     def generate(contenido, titulo="Presentación de Julieta"):
+        # 1. Crear el objeto de la presentación
         prs = Presentation()
         
-        # Diapositiva de Título
+        # 2. Crear diapositiva de título
         slide_layout = prs.slide_layouts[0] 
         slide = prs.slides.add_slide(slide_layout)
         slide.shapes.title.text = titulo
         if len(slide.placeholders) > 1:
             slide.placeholders[1].text = "Generado por Julieta v2 — Asistente Docente"
 
-        # Separar contenido por líneas para crear diapositivas
+        # 3. Crear diapositivas de contenido
+        # Separamos el texto que nos da la IA por párrafos o líneas
         lineas = contenido.split('\n')
         for linea in lineas:
-            if linea.strip():
+            if len(linea.strip()) > 10: # Solo líneas con contenido real
                 bullet_layout = prs.slide_layouts[1]
-                slide = prs.slides.add_slide(bullet_layout)
-                slide.shapes.title.text = "Contenido"
-                slide.placeholders[1].text = linea
+                nueva_slide = prs.slides.add_slide(bullet_layout)
+                nueva_slide.shapes.title.text = "Información Clave"
+                nueva_slide.placeholders[1].text = linea.strip()
 
-        # Guardar en memoria para descargar
+        # 4. Guardar en un "archivo virtual" en memoria
         ppt_store = BytesIO()
         prs.save(ppt_store)
         return ppt_store.getvalue()
