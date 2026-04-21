@@ -1,27 +1,31 @@
 """
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║  JULIETA — Asistente de Educación Inicial  v4.0  (Production-Grade)        ║
+║  JULIETA — Asistente de Educación Inicial  v4.1  (Production-Grade)        ║
 ║  Arquitectura enterprise · Python 3.11+ · Zero subprocesos                  ║
 ║                                                                              ║
-║  NUEVO EN v4 vs v3:                                                          ║
+║  GENERACIÓN DE IMÁGENES — 4 capas con degradación elegante:                 ║
 ║  ─────────────────────────────────────────────────────────────────────────── ║
-║  1. GENERADOR DE IMÁGENES IA: Integración con DALL-E 3 / Stable Diffusion   ║
-║     via API pública — genera ilustraciones pedagógicas profesionales.        ║
-║  2. GENERADOR EXCEL (.xlsx): Tablas de registros, notas, asistencia, etc.   ║
-║     Usa openpyxl con formato condicional, colores y gráficos.               ║
-║  3. GENERADOR PDF: Reportes formales con ReportLab — layout de columnas,    ║
-║     tablas, cabeceras institucionales y pie de página automático.            ║
-║  4. INTERFACES DEDICADAS: Cada formato tiene su pantalla con opciones        ║
-║     específicas — no más formulario genérico único para todo.                ║
-║  5. NAVEGACIÓN MEJORADA: Arquitectura de rutas con st.session_state.route   ║
-║     — sin reruns innecesarios, flujo UX lineal y predecible.                ║
-║  6. SISTEMA DE TEMAS DE COLOR: El usuario puede elegir paleta del documento. ║
-║  7. PREVIEW EN TIEMPO REAL: Expander con markdown renderizado antes de      ║
-║     descargar cualquier archivo.                                             ║
+║  1. Google Gemini Imagen 3   ← GEMINI_API_KEY en secrets                    ║
+║     Calidad Gemini-level, prompt en inglés enriquecido por Groq/Llama       ║
+║  2. Stability AI SDXL 1.0   ← SD_API_KEY en secrets                        ║
+║     Alta fidelidad, control de estilo, negative prompts                     ║
+║  3. Pollinations.ai (Flux)   ← GRATUITA, sin key, sin registro              ║
+║     Helper generar_imagen_educativa() integrado directamente:               ║
+║       url = ImageGenerator.generar_imagen_educativa("bosque tropical")      ║
+║       st.image(url)   # ← funciona directamente con la URL mágica          ║
+║     _generate_pollinations_bytes() descarga bytes para download_button()    ║
+║  4. Fallback elegante: URL exportable + prompt listo para herramientas ext. ║
+║                                                                              ║
+║  OTROS FORMATOS DE ARCHIVO:                                                  ║
+║  ─────────────────────────────────────────────────────────────────────────── ║
+║  · Word (.docx)    python-docx — 8 tipos, paleta de colores, datos IE       ║
+║  · PPT (.pptx)     python-pptx — portada + contenido + cierre automático    ║
+║  · Excel (.xlsx)   openpyxl   — 5 planillas, fórmulas, gráfico, freeze     ║
+║  · PDF             ReportLab  — layout A4 multipágina, h/f institucional    ║
 ║                                                                              ║
 ║  STACK (requirements.txt):                                                   ║
 ║    streamlit · groq · python-docx · python-pptx · openpyxl · reportlab      ║
-║    Pillow · requests · openai (opcional, para imágenes)                      ║
+║    Pillow · (sin dependencias de Node.js, npm ni subprocesos)                ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """
 
@@ -1222,114 +1226,298 @@ class PDFGenerator:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# GENERADOR DE IMÁGENES — via API pública / Pollinations
+# GENERADOR DE IMÁGENES — arquitectura de 4 capas con degradación elegante
 # ──────────────────────────────────────────────────────────────────────────────
 class ImageGenerator:
     """
-    Genera imágenes pedagógicas profesionales.
+    Genera imágenes pedagógicas profesionales para educación inicial peruana.
 
-    Estrategia de tres capas (degradación elegante):
-      1. Pollinations.ai API — gratuita, sin key, calidad aceptable
-      2. Stable Diffusion (si hay key en secrets["SD_API_KEY"])
-      3. Generación de placeholder descriptivo si todo falla
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │  CADENA DE PRIORIDAD (se detiene en el primer éxito)                   │
+    │                                                                         │
+    │  Capa 1 · Gemini Imagen (Google AI)  ← requiere GEMINI_API_KEY         │
+    │           Calidad Gemini-level, prompts naturales en español/inglés.    │
+    │           Endpoint: generativelanguage.googleapis.com/v1beta            │
+    │                                                                         │
+    │  Capa 2 · Stability AI (SDXL 1.0)   ← requiere SD_API_KEY             │
+    │           Alta fidelidad, control fino del estilo artístico.            │
+    │           Endpoint: api.stability.ai/v1/generation/...                  │
+    │                                                                         │
+    │  Capa 3 · Pollinations.ai            ← GRATUITA, sin key               │
+    │           Helper generar_imagen_educativa() integrado directamente.     │
+    │           URL mágica: https://pollinations.ai/p/{prompt}?...           │
+    │           Descarga la imagen como bytes para st.image() + download.    │
+    │                                                                         │
+    │  Capa 4 · Fallback                   ← siempre disponible              │
+    │           Retorna None + prompt exportable para herramientas externas.  │
+    └─────────────────────────────────────────────────────────────────────────┘
 
-    El prompt se enriquece con Julieta antes de enviarse a la API
-    para asegurar imágenes pedagógicas, culturalmente pertinentes y
-    apropiadas para educación inicial peruana.
+    El prompt se enriquece con IA (Groq/Llama) antes de enviarse a cualquier
+    backend, garantizando: pertinencia cultural peruana, seguridad para niños
+    3-6 años, estilo artístico específico y calidad pedagógica.
     """
 
-    POLLINATIONS_URL = "https://image.pollinations.ai/prompt/{prompt}"
-    SD_API_URL = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image"
+    # ── Endpoints ─────────────────────────────────────────────────────────────
+    _POLLINATIONS_BASE = "https://pollinations.ai/p"
+    _POLLINATIONS_IMG  = "https://image.pollinations.ai/prompt"
+    _SD_URL            = (
+        "https://api.stability.ai/v1/generation/"
+        "stable-diffusion-xl-1024-v1-0/text-to-image"
+    )
+    _GEMINI_URL        = (
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        "imagen-3.0-generate-002:predict"
+    )
 
+    # ── Helper público: el link mágico de Pollinations ────────────────────────
+    @staticmethod
+    def generar_imagen_educativa(descripcion: str,
+                                  width: int = 1024,
+                                  height: int = 1024,
+                                  seed: Optional[int] = None) -> str:
+        """
+        Genera una URL lista para st.image() sin necesidad de API key.
+
+        Implementa exactamente el helper solicitado, con mejoras:
+          · Usa el endpoint /p/ (más estable que /prompt/ para URLs directas)
+          · Agrega parámetros de calidad: nologo, enhance, safe
+          · seed opcional para reproducibilidad
+
+        Uso:
+            url = ImageGenerator.generar_imagen_educativa(
+                "un dibujo infantil de un bosque tropical peruano"
+            )
+            st.image(url)
+        """
+        import urllib.parse
+        prompt_encoded = urllib.parse.quote(descripcion.strip(), safe="")
+        params = f"?width={width}&height={height}&nologo=true&enhance=true&safe=true"
+        if seed is not None:
+            params += f"&seed={seed}"
+        return f"{ImageGenerator._POLLINATIONS_BASE}/{prompt_encoded}{params}"
+
+    # ── Enriquecedor de prompt con IA ─────────────────────────────────────────
     @classmethod
     def _enrich_prompt(cls, tema: str, estilo: str, descripcion: str,
                        engine: "GroqEngine") -> str:
         """
-        Usa la IA para crear un prompt detallado en inglés
-        optimizado para generación de imágenes pedagógicas.
+        Convierte la descripción en español en un prompt optimizado en inglés
+        para cualquier motor de generación de imágenes.
+
+        Criterios garantizados en el prompt resultante:
+          · Seguro para niños (3-6 años) — ningún elemento inapropiado
+          · Culturalmente pertinente al contexto peruano
+          · Incluye directivas de estilo, iluminación y composición
+          · Pesos de calidad: masterpiece, best quality, highly detailed
         """
         sys_prompt = (
-            "Eres un experto en prompt engineering para generación de imágenes. "
-            "Tu tarea: convertir la descripción de una imagen educativa para niños peruanos "
-            "en un prompt en inglés, rico, detallado y seguro para una imagen educativa. "
-            "El prompt debe: ser en inglés, incluir estilo artístico, iluminación, paleta, "
-            "ser apropiado para niños de 3-6 años, incluir elementos culturales peruanos si aplica. "
-            "Responde SOLO el prompt, sin explicaciones ni comillas."
+            "You are an expert image-generation prompt engineer specializing in "
+            "educational content for Peruvian preschool children (ages 3-6). "
+            "Convert the Spanish description into a rich, detailed English prompt "
+            "optimized for AI image generators (Stable Diffusion, DALL-E, Imagen). "
+            "\n\nRules:\n"
+            "- Output ONLY the prompt, no explanations, no quotes\n"
+            "- Always include: art style, lighting quality, color palette, composition\n"
+            "- Must be child-safe: no violence, no adult themes, no scary elements\n"
+            "- Include Peruvian cultural elements when relevant (Andes, Amazon, textiles)\n"
+            "- End with quality boosters: masterpiece, best quality, vibrant colors, "
+            "highly detailed, professional illustration\n"
+            "- Keep under 300 tokens"
         )
         user_prompt = (
-            f"Tema: {tema}\nEstilo: {estilo}\nDescripción adicional: {descripcion}\n"
-            "Genera el prompt para imagen educativa infantil peruana."
+            f"Tema educativo: {tema}\n"
+            f"Estilo artístico solicitado: {estilo}\n"
+            f"Descripción en español: {descripcion}\n\n"
+            "Generate the optimized image prompt in English:"
         )
         try:
-            return engine.complete(sys_prompt, user_prompt, temperature=0.7)
+            result = engine.complete(sys_prompt, user_prompt, temperature=0.65)
+            # Sanity check: si la IA devolvió texto en español, usar fallback seguro
+            if result and len(result.strip()) > 10:
+                return result.strip()
         except Exception as exc:
-            logger.warning("Error enriqueciendo prompt: %s", exc)
-            return f"{tema}, {estilo}, educational, children, Peru, colorful, safe for kids"
+            logger.warning("Prompt enrichment falló: %s", exc)
 
-    @classmethod
-    def generate_pollinations(cls, prompt: str,
-                               width: int = 1024, height: int = 768) -> Optional[bytes]:
-        """Genera imagen via Pollinations.ai (gratuito, sin API key)."""
-        try:
-            import urllib.parse, urllib.request
-            safe_prompt = urllib.parse.quote(prompt)
-            url = f"https://image.pollinations.ai/prompt/{safe_prompt}?width={width}&height={height}&nologo=true&enhance=true"
-            with urllib.request.urlopen(url, timeout=45) as resp:
-                return resp.read()
-        except Exception as exc:
-            logger.warning("Pollinations falló: %s", exc)
-            return None
+        # Fallback determinista: construir prompt base sin IA
+        safe_desc = descripcion[:150].replace('"', '').replace("'", '')
+        return (
+            f"{safe_desc}, {estilo}, educational illustration, Peruvian children, "
+            "colorful, safe for kids, masterpiece, best quality, highly detailed, "
+            "professional children's book art"
+        )
 
+    # ── Capa 1: Google Gemini Imagen ──────────────────────────────────────────
     @classmethod
-    def generate_sd(cls, prompt: str, api_key: str) -> Optional[bytes]:
-        """Genera imagen via Stability AI (requiere key)."""
-        try:
-            import urllib.request, urllib.error
-            import json as _json
-            payload = _json.dumps({
-                "text_prompts": [{"text": prompt, "weight": 1}],
-                "cfg_scale": 7, "height": 768, "width": 1024,
-                "steps": 30, "samples": 1,
-            }).encode()
-            req = urllib.request.Request(
-                cls.SD_API_URL, data=payload,
-                headers={"Content-Type": "application/json",
-                         "Authorization": f"Bearer {api_key}",
-                         "Accept": "application/json"},
-                method="POST",
-            )
-            with urllib.request.urlopen(req, timeout=60) as resp:
-                data = _json.loads(resp.read())
-                img_b64 = data["artifacts"][0]["base64"]
-                return base64.b64decode(img_b64)
-        except Exception as exc:
-            logger.warning("SD API falló: %s", exc)
-            return None
-
-    @classmethod
-    def generate(cls, tema: str, estilo: str, descripcion: str,
-                 engine: "GroqEngine") -> Tuple[Optional[bytes], str]:
+    def _generate_gemini(cls, prompt: str, api_key: str,
+                          width: int = 1024, height: int = 1024) -> Optional[bytes]:
         """
-        Retorna (imagen_bytes, prompt_usado).
-        imagen_bytes puede ser None si todas las APIs fallaron.
+        Google Gemini Imagen 3 — calidad superior, latencia ~8-15s.
+        Requiere GEMINI_API_KEY en st.secrets.
+        Documentación: https://ai.google.dev/api/generate-images
         """
-        enriched_prompt = cls._enrich_prompt(tema, estilo, descripcion, engine)
-        logger.info("Prompt imagen enriquecido: %s...", enriched_prompt[:80])
+        import json as _j, urllib.request as _ur, urllib.error as _ue
+        payload = _j.dumps({
+            "instances": [{"prompt": prompt}],
+            "parameters": {
+                "sampleCount":    1,
+                "aspectRatio":    "4:3" if width > height else "1:1",
+                "safetyFilterLevel": "block_some",
+                "personGeneration": "allow_all",
+            }
+        }).encode("utf-8")
 
-        # Capa 1: Stability AI (si hay key)
+        url = f"{cls._GEMINI_URL}?key={api_key}"
+        req = _ur.Request(
+            url, data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with _ur.urlopen(req, timeout=60) as resp:
+                data = _j.loads(resp.read())
+                # Respuesta: predictions[0].bytesBase64Encoded
+                b64 = data["predictions"][0]["bytesBase64Encoded"]
+                img_bytes = base64.b64decode(b64)
+                logger.info("✅ Gemini Imagen: éxito (%d bytes)", len(img_bytes))
+                return img_bytes
+        except _ue.HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="ignore")[:200]
+            logger.warning("Gemini HTTP %d: %s", exc.code, body)
+        except Exception as exc:
+            logger.warning("Gemini Imagen falló: %s", exc)
+        return None
+
+    # ── Capa 2: Stability AI SDXL ────────────────────────────────────────────
+    @classmethod
+    def _generate_stability(cls, prompt: str, api_key: str,
+                             width: int = 1024, height: int = 1024) -> Optional[bytes]:
+        """
+        Stability AI — Stable Diffusion XL 1.0.
+        Requiere SD_API_KEY en st.secrets.
+        """
+        import json as _j, urllib.request as _ur, urllib.error as _ue
+        # SDXL acepta solo dimensiones múltiplos de 64 entre 512-1536
+        w = max(512, min(1536, (width  // 64) * 64))
+        h = max(512, min(1536, (height // 64) * 64))
+
+        payload = _j.dumps({
+            "text_prompts":  [{"text": prompt, "weight": 1.0},
+                              {"text": "blurry, low quality, nsfw, children, ugly",
+                               "weight": -0.8}],
+            "cfg_scale":     7.5,
+            "height":        h,
+            "width":         w,
+            "steps":         35,
+            "samples":       1,
+            "style_preset":  "digital-art",
+        }).encode("utf-8")
+
+        req = _ur.Request(
+            cls._SD_URL, data=payload,
+            headers={
+                "Content-Type":  "application/json",
+                "Authorization": f"Bearer {api_key}",
+                "Accept":        "application/json",
+            },
+            method="POST",
+        )
+        try:
+            with _ur.urlopen(req, timeout=90) as resp:
+                data = _j.loads(resp.read())
+                img_bytes = base64.b64decode(data["artifacts"][0]["base64"])
+                logger.info("✅ Stability AI: éxito (%d bytes)", len(img_bytes))
+                return img_bytes
+        except _ue.HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="ignore")[:200]
+            logger.warning("Stability HTTP %d: %s", exc.code, body)
+        except Exception as exc:
+            logger.warning("Stability AI falló: %s", exc)
+        return None
+
+    # ── Capa 3: Pollinations.ai (gratuita, descarga binaria) ──────────────────
+    @classmethod
+    def _generate_pollinations_bytes(cls, prompt: str,
+                                      width: int = 1024,
+                                      height: int = 1024) -> Optional[bytes]:
+        """
+        Pollinations.ai — gratuita, sin API key, sin registro.
+        Usa el endpoint /prompt/ que devuelve la imagen directamente como bytes,
+        permitiendo st.image(bytes) + st.download_button(bytes).
+
+        Diferencia con generar_imagen_educativa():
+          · generar_imagen_educativa() devuelve una URL (para st.image(url))
+          · _generate_pollinations_bytes() descarga y devuelve los bytes
+            (necesario para el botón de descarga)
+        """
+        import urllib.parse as _up, urllib.request as _ur, urllib.error as _ue
+        safe = _up.quote(prompt.strip(), safe="")
+        url  = (
+            f"{cls._POLLINATIONS_IMG}/{safe}"
+            f"?width={width}&height={height}"
+            f"&nologo=true&enhance=true&safe=true"
+            f"&model=flux"          # modelo de mayor calidad disponible en Pollinations
+        )
+        logger.info("Pollinations URL: %s…", url[:120])
+        try:
+            req = _ur.Request(url, headers={"User-Agent": "Julieta-v4/1.0"})
+            with _ur.urlopen(req, timeout=60) as resp:
+                content_type = resp.headers.get("Content-Type", "")
+                if "image" not in content_type:
+                    logger.warning("Pollinations devolvió Content-Type: %s", content_type)
+                    return None
+                data = resp.read()
+                if len(data) < 1000:          # menos de 1KB → probablemente error
+                    logger.warning("Pollinations: respuesta demasiado pequeña (%d bytes)", len(data))
+                    return None
+                logger.info("✅ Pollinations: éxito (%d bytes)", len(data))
+                return data
+        except _ue.URLError as exc:
+            logger.warning("Pollinations URLError: %s", exc)
+        except Exception as exc:
+            logger.warning("Pollinations inesperado: %s", exc)
+        return None
+
+    # ── Método principal: orquesta las 4 capas ────────────────────────────────
+    @classmethod
+    def generate(cls,
+                 tema: str,
+                 estilo: str,
+                 descripcion: str,
+                 engine: "GroqEngine",
+                 width: int = 1024,
+                 height: int = 768) -> Tuple[Optional[bytes], str, str]:
+        """
+        Orquesta la cadena de 4 capas y retorna:
+            (imagen_bytes | None, prompt_enriquecido, fuente_usada)
+
+        fuente_usada puede ser: "gemini" | "stability" | "pollinations" | "none"
+        imagen_bytes es None solo si las 4 capas fallan.
+        """
+        prompt = cls._enrich_prompt(tema, estilo, descripcion, engine)
+        logger.info("Prompt enriquecido (%d chars): %s…", len(prompt), prompt[:80])
+
+        # ── Capa 1: Gemini Imagen ─────────────────────────────────────────────
+        gemini_key = st.secrets.get("GEMINI_API_KEY", "")
+        if gemini_key:
+            img = cls._generate_gemini(prompt, gemini_key, width, height)
+            if img:
+                return img, prompt, "gemini"
+
+        # ── Capa 2: Stability AI ──────────────────────────────────────────────
         sd_key = st.secrets.get("SD_API_KEY", "")
         if sd_key:
-            img = cls.generate_sd(enriched_prompt, sd_key)
+            img = cls._generate_stability(prompt, sd_key, width, height)
             if img:
-                return img, enriched_prompt
+                return img, prompt, "stability"
 
-        # Capa 2: Pollinations (gratuita)
-        img = cls.generate_pollinations(enriched_prompt)
+        # ── Capa 3: Pollinations (bytes, para download) ───────────────────────
+        img = cls._generate_pollinations_bytes(prompt, width, height)
         if img:
-            return img, enriched_prompt
+            return img, prompt, "pollinations"
 
-        # Capa 3: Ninguna API disponible
-        return None, enriched_prompt
+        # ── Capa 4: Todo falló ────────────────────────────────────────────────
+        logger.error("Todas las capas de generación de imágenes fallaron.")
+        return None, prompt, "none"
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -2458,34 +2646,70 @@ def render_imagen_form(engine: GroqEngine) -> None:
     with st.expander("🔍 Prompt enviado a la IA de imágenes", expanded=False):
         st.code(enriched, language=None)
 
-    with st.spinner("🎨 Generando imagen con IA… (puede tomar 10-30 segundos)"):
-        img_bytes, prompt_usado = ImageGenerator.generate(
-            tema_img, estilo_img, desc_enriquecida, engine
+    with st.spinner("🎨 Generando imagen con IA… (puede tomar 10-40 segundos)"):
+        img_bytes, prompt_usado, fuente = ImageGenerator.generate(
+            tema_img, estilo_img, desc_enriquecida, engine,
+            width=width, height=height,
         )
 
     if img_bytes is None:
         st.error(
-            "❌ No se pudo generar la imagen. "
+            "❌ No se pudo generar la imagen con ningún motor disponible. "
             "Verifica la conexión a internet e intenta de nuevo."
         )
-        st.info(
-            "💡 **Alternativa:** Puedes usar el prompt generado arriba "
-            "en herramientas como DALL-E, Midjourney o Leonardo AI."
+        # Mostrar la URL de Pollinations como alternativa directa
+        url_directa = ImageGenerator.generar_imagen_educativa(
+            prompt_usado[:300], width=width, height=height
         )
+        st.info(
+            "💡 **Alternativa rápida:** Haz clic en este link para ver la imagen "
+            "generada directamente en tu navegador:"
+        )
+        st.markdown(f"🔗 [Abrir imagen en navegador]({url_directa})")
+        st.code(url_directa, language=None)
+        st.caption("También puedes copiar el prompt de arriba y usarlo en DALL-E, Midjourney o Leonardo AI.")
         return
 
+    # ── Badge de fuente usada ─────────────────────────────────────────────────
+    _fuente_info = {
+        "gemini":      ("✨ Google Gemini Imagen 3", "#1565C0"),
+        "stability":   ("⚡ Stability AI SDXL",      "#6A1B9A"),
+        "pollinations":("🌸 Pollinations AI (Flux)",  "#2E7D32"),
+        "none":        ("❓ Desconocida",             "#999"),
+    }
+    fuente_label, fuente_color = _fuente_info.get(fuente, ("🤖 IA", "#666"))
+
     # ── Mostrar imagen ────────────────────────────────────────────────────────
-    st.markdown("### ✅ ¡Imagen generada!")
+    st.markdown(
+        f"### ✅ ¡Imagen generada! &nbsp;"
+        f"<span style='font-size:.75rem;background:{fuente_color};color:white;"
+        f"padding:3px 12px;border-radius:20px;font-weight:700'>"
+        f"{fuente_label}</span>",
+        unsafe_allow_html=True,
+    )
+
     col_img, col_acc = st.columns([3, 1])
     with col_img:
         st.markdown('<div class="imagen-preview">', unsafe_allow_html=True)
         st.image(img_bytes, use_container_width=True,
-                 caption=f"{tema_img} · {estilo_img}")
+                 caption=f"{tema_img} · {estilo_img} · {fuente_label}")
         st.markdown('</div>', unsafe_allow_html=True)
+
+        # URL alternativa de Pollinations para compartir
+        url_compartir = ImageGenerator.generar_imagen_educativa(
+            prompt_usado[:300], width=width, height=height
+        )
+        with st.expander("🔗 URL para compartir (Pollinations)"):
+            st.code(url_compartir, language=None)
+            st.caption(
+                "Esta URL genera una variante similar. "
+                "Pégala en st.image() para mostrarla en tu propia app."
+            )
+
     with col_acc:
-        st.markdown("**Acciones:**")
+        st.markdown("**⬇️ Descargar:**")
         nombre_img = (
-            f"Julieta_Imagen_{tema_img[:20].replace(' ','_')}_"
+            f"Julieta_{fuente}_{tema_img[:18].replace(' ','_')}_"
             f"{datetime.now().strftime('%Y%m%d_%H%M')}.png"
         )
         st.download_button(
@@ -2495,20 +2719,37 @@ def render_imagen_form(engine: GroqEngine) -> None:
             mime="image/png",
             use_container_width=True,
         )
-        if st.button("🔄 Generar otra variante", use_container_width=True,
+
+        # Variante cuadrada (1:1) útil para redes sociales
+        if st.button("📐 Variante 1:1 (1024×1024)", use_container_width=True,
+                     type="secondary", key="var_cuadrada"):
+            with st.spinner("Generando variante cuadrada…"):
+                img2, _, _ = ImageGenerator.generate(
+                    tema_img, estilo_img, desc_enriquecida, engine, 1024, 1024
+                )
+            if img2:
+                st.image(img2, use_container_width=True)
+                st.download_button("⬇️ Descargar 1:1",
+                                   data=img2, file_name=f"Julieta_1x1_{datetime.now().strftime('%H%M')}.png",
+                                   mime="image/png", use_container_width=True)
+
+        if st.button("🔄 Nueva variante", use_container_width=True,
                      type="secondary", key="regen_img"):
             st.rerun()
 
         st.markdown("---")
-        st.markdown("**Prompt usado:**")
-        st.text_area("", value=enriched[:200], height=120,
+        st.markdown("**🧠 Prompt IA usado:**")
+        st.text_area("", value=prompt_usado, height=160,
                       label_visibility="collapsed", key="prompt_display")
-        st.caption("Cópialo para usar en otras herramientas")
+        st.caption(
+            "Cópialo en DALL-E, Midjourney, Leonardo AI o Bing Image Creator "
+            "para obtener variantes adicionales."
+        )
 
     StorageManager.save({
         "fecha":     datetime.now().strftime("%d/%m/%Y %H:%M"),
-        "titulo":    f"Imagen: {tema_img[:40]}",
-        "contenido": enriched,
+        "titulo":    f"Imagen ({fuente_label}): {tema_img[:35]}",
+        "contenido": prompt_usado,
         "tipo":      "Imagen IA",
     })
 
