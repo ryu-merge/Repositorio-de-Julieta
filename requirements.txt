@@ -1,15 +1,15 @@
 # ── Julieta v3 — requirements.txt ──────────────────────────────────────────
 # Instalar con: pip install -r requirements.txt
 # Compatible con Streamlit Cloud, Railway, Render, Docker
- 
+
 streamlit>=1.35.0
 groq>=0.9.0
- 
+
 # Generadores de artefactos — puros Python, sin Node.js ni npm
 python-docx>=1.1.0      # .docx (Word)
 python-pptx>=0.6.23     # .pptx (PowerPoint)
 Pillow>=10.0.0           # requerido internamente por python-pptx para imágenes
- 
+
 # Tipado y utilidades estándar (incluidas en stdlib Python 3.11+, pero
 # explicitarlas evita problemas en entornos con Python 3.9/3.10)
 # typing-extensions>=4.0
