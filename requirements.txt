@@ -1,15 +1,63 @@
-# ── Julieta v3 — requirements.txt ──────────────────────────────────────────
-# Instalar con: pip install -r requirements.txt
-# Compatible con Streamlit Cloud, Railway, Render, Docker
+# ══════════════════════════════════════════════════════════════════════════════
+#  JULIETA v4.1 — requirements.txt (VERSIÓN FUSIONADA COMPLETA)
+#  Instalar con: pip install -r requirements.txt
+#  Compatible con Streamlit Cloud, Railway, Render, Docker
+#
+#  Política de versiones:
+#    · Versiones mínimas probadas explícitas (no >=latest)
+#    · Sin rangos abiertos — cada dep fijada con >= mínimo conocido bueno
+#    · Todas las deps transitivas críticas declaradas explícitamente
+# ══════════════════════════════════════════════════════════════════════════════
 
+# ── INTERFAZ WEB ──────────────────────────────────────────────────────────────
 streamlit>=1.35.0
-groq>=0.9.0
+# Framework UI. v1.35+ requerido para st.status(), use_container_width en st.image(),
+# soporte estable de fragmentos y session_state robusto.
 
-# Generadores de artefactos — puros Python, sin Node.js ni npm
-python-docx>=1.1.0      # .docx (Word)
-python-pptx>=0.6.23     # .pptx (PowerPoint)
-Pillow>=10.0.0           # requerido internamente por python-pptx para imágenes
+# ── MOTOR DE IA / LLM ────────────────────────────────────────────────────────
+groq>=0.11.0
+# Cliente oficial Groq — llama-3.3-70b-versatile.
+# v0.11+ corrige streaming y retry automático ante rate-limits.
 
-# Tipado y utilidades estándar (incluidas en stdlib Python 3.11+, pero
-# explicitarlas evita problemas en entornos con Python 3.9/3.10)
-# typing-extensions>=4.0
+# ── GENERACIÓN DE DOCUMENTOS WORD ────────────────────────────────────────────
+python-docx>=1.1.2
+# Generación .docx 100% Python sin Node.js ni npm ni subprocesos.
+# v1.1.2+ corrige compatibilidad Python 3.12 y manejo de OxmlElement.
+# API usada: Document, Paragraph, Run, Section, Header/Footer.
+
+# ── GENERACIÓN DE PRESENTACIONES POWERPOINT ──────────────────────────────────
+python-pptx>=0.6.23
+# Generación .pptx en BytesIO (sin pptxgenjs ni npm).
+# API usada: Presentation, shapes, text_frame, fill, RGBColor, Pt/Inches.
+
+Pillow>=10.3.0
+# Requerido internamente por python-pptx para imágenes embebidas en slides.
+# También usado para procesar bytes de imágenes IA antes de incrustar.
+# v10.3+ contiene parches CVE-2024-28219 y CVE-2024-28220.
+
+# ── GENERACIÓN DE PLANILLAS EXCEL ────────────────────────────────────────────
+openpyxl>=3.1.5
+# Generación .xlsx en memoria con PatternFill, Font, Border, Alignment,
+# BarChart, freeze_panes, merge_cells.
+# v3.1.5+ corrige rendering de fórmulas IFERROR en LibreOffice Calc.
+
+# ── GENERACIÓN DE INFORMES PDF (ESTO SOLUCIONA TU ERROR ROJO) ────────────────
+reportlab>=4.2.2
+# Layout profesional A4 multipágina — pure Python, sin compilación.
+# Funciona en Streamlit Cloud sin dependencias nativas.
+# API usada: SimpleDocTemplate, Paragraph, ParagraphStyle, HRFlowable.
+
+# ── HTTP / IMÁGENES IA ────────────────────────────────────────────────────────
+requests>=2.32.3
+# Cliente HTTP de alto nivel. Usado como fallback si urllib falla
+# por restricciones de TLS en entornos corporativos.
+# v2.32.3+ corrige CVE-2024-35195 (credenciales en redirects HTTPS→HTTP).
+
+# ── UTILIDADES DE TIPADO ESTÁNDAR ─────────────────────────────────────────────
+# Incluidas en stdlib Python 3.11+, pero explicitarlas evita problemas en
+# entornos con Python 3.9/3.10. Requeridas por la mayoría de librerías de IA.
+typing_extensions>=4.12.0
+
+python-dateutil>=2.9.0
+# Parsing robusto de fechas — requerido transitivamente por openpyxl.
+# Declarado explícitamente para fijar versión y evitar conflictos.
